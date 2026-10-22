@@ -1,21 +1,139 @@
-# Leetcode Problem Rating Project
+# 🚀 LeetLens — LeetCode Rating & Progress Tracker
 
-[![LeetCode user zerotrac2](https://img.shields.io/badge/dynamic/json?style=for-the-badge&labelColor=black&color=%23ffa116&label=Solved&query=solvedOverTotal&url=https%3A%2F%2Fleetcode-badge.vercel.app%2Fapi%2Fusers%2Fzerotrac2%2Fcn%2F&logo=leetcode&logoColor=yellow)](https://leetcode.cn/zerotrac2/)
+**Explore LeetCode problem ratings, track your solved problems, and monitor your algorithmic progress.**
 
-[![LeetCode user zerotrac2](https://img.shields.io/badge/dynamic/json?style=for-the-badge&labelColor=black&color=%23ffa116&label=Rating&query=ratingQuantile&url=https%3A%2F%2Fleetcode-badge.vercel.app%2Fapi%2Fusers%2Fzerotrac2%2Fcn%2F&logo=leetcode&logoColor=yellow)](https://leetcode.cn/zerotrac2/)
+LeetLens is a personal, offline-ready LeetCode problem tracker and rating explorer built with Vue 3 and TypeScript. It combines estimated problem difficulty ratings with personal progress tracking, helping you choose problems that match your goals.
 
-## Introduction
+🌐 **Live Demo:** [LeetLens](https://leet-lens.vercel.app/)  
+📦 **Repository:** [AdiTyA-SiNgh-tech/LeetLens](https://github.com/AdiTyA-SiNgh-tech/LeetLens)
 
-This frontend project has been deployed to [Github Pages](https://zerotrac.github.io/leetcode_problem_rating/).
+---
 
-The corresponding backend calculates the rating of the problems in leetcode weekly/biweekly contests based on [Elo rating system](https://en.wikipedia.org/wiki/Elo_rating_system) as well as [Maximum likelihood estimation](https://en.wikipedia.org/wiki/Maximum_likelihood_estimation). It is not a 100% accurate result, but sufficient for evaluating the relative difficulty of a problem.
+## ✨ Features
 
-All the data needed during calculation are obtained by web crawlers. In order not to violate any potential terms and regulations, I will NOT open-source the backend code. Moreover, as the APIs are different amongst contests, the result does not contain the problems in 1st-62nd weekly contests.
+### ✅ Personal Problem Tracking
+- Mark individual problems as **Solved** or **Unsolved**.
+- Quickly identify completed problems with visual indicators.
+- Persist your progress using browser `localStorage`.
 
-Please refer to [ratings.txt](ratings.txt) for the raw data sorted in descending order. This will be updated every week after the contest(s).
+### 📊 Progress Dashboard
+- View total, solved, and unsolved problem counts.
+- Track your overall completion percentage.
+- Monitor progress within a selected rating range.
 
-## Related Projects
+### 🔍 Search, Filter & Sort
+- Filter problems by solved status.
+- Set custom minimum and maximum rating boundaries.
+- Search by problem ID or title in English or Chinese.
+- Filter by weekly or biweekly contest.
+- Sort by problem ID or estimated rating.
 
-- [LeetCodeRating](https://github.com/zhang-wangz/LeetCodeRating). A Chrome plugin which displays the problem ratings on offical LeetCode website. Currently, it is only available on LeetCode-China site.
+### 💾 Local Storage & Backups
+- Save solved problem IDs locally without requiring an account.
+- Export your progress to a JSON file.
+- Import a previous backup to restore your progress.
+- Validate imported data and avoid duplicate entries.
 
-- [refined-leetcode](https://github.com/XYShaoKang/refined-leetcode). A Chrome extension which integrates serveral projects and enchances the user experience. It contains features like timer, blocklist, user ratings prediction and problem ratings display. Currently, it is only available on LeetCode-China site.
+**Privacy:** Your personal solved status is stored in your browser. Progress is not automatically synchronized across browsers or devices.
+
+### 🌐 Internationalization
+- Switch between English and Simplified Chinese.
+- Access the appropriate LeetCode website for each language.
+
+### ⚡ Lightweight Deployment
+- Runs as a frontend application.
+- No personal database or backend is required for progress tracking.
+- Hosted on Vercel with GitHub integration for updates.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** [Vue 3](https://vuejs.org/)
+- **Language:** [TypeScript](https://www.typescriptlang.org/)
+- **UI Components:** [Element Plus](https://element-plus.org/)
+- **Icons:** [Element Plus Icons](https://element-plus.org/en-US/component/icon.html)
+- **Internationalization:** [Vue I18n](https://vue-i18n.intlify.dev/)
+- **Build Tool:** Vue CLI / Webpack
+- **Storage:** Browser `localStorage`
+- **Hosting:** [Vercel](https://vercel.com/)
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) — use a version supported by the project's dependencies.
+- npm, included with Node.js.
+- Git.
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/AdiTyA-SiNgh-tech/LeetLens.git
+cd LeetLens
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Run the Development Server
+
+```bash
+npm run serve
+```
+
+Open the local URL displayed in your terminal.
+
+### 4. Create a Production Build
+
+```bash
+npm run build
+```
+
+The production files are generated in the `dist` directory.
+
+---
+
+## 💾 Backing Up Your Progress
+
+1. Open LeetLens.
+2. Use the progress export option to download your JSON backup.
+3. On another browser or device, open LeetLens and use the import option to restore your saved progress.
+
+Your progress is browser-specific, so export backups regularly if you want to preserve your tracking data.
+
+---
+
+## 🌍 Deployment
+
+LeetLens is deployed using Vercel.
+
+To deploy your own version:
+
+1. Fork or clone this repository.
+2. Import the repository into [Vercel](https://vercel.com/).
+3. Configure the build settings if they are not detected automatically.
+4. Deploy the application.
+
+Subsequent pushes to the connected GitHub repository can trigger automatic deployments.
+
+---
+
+## 🙌 Acknowledgements
+
+- [zerotrac/leetcode_problem_rating](https://github.com/zerotrac/leetcode_problem_rating) — the original LeetCode problem-rating project that inspired this customized tracker.
+- [LeetCode](https://leetcode.com/) — the platform for coding practice and contests.
+- The open-source communities behind Vue, TypeScript, and Element Plus.
+
+Please review the original project's license and retain any required attribution when redistributing modified versions.
+
+---
+
+## 📄 License
+
+Refer to the original project's license and any applicable attribution requirements before redistributing this modified version.
