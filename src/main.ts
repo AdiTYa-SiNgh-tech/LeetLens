@@ -4,6 +4,7 @@ import router from "./router";
 import store from "./store";
 import elementPlus from "element-plus";
 import "element-plus/dist/index.css";
+import "./styles/theme.css";
 import { createI18n } from "vue-i18n";
 import messages from "./locale";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
@@ -15,8 +16,10 @@ const i18n = createI18n({
   fallbackLocale: "en",
   messages,
 });
+
 const app = createApp(App);
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component);
 }
+
 app.use(store).use(i18n).use(router).use(elementPlus).mount("#app");
