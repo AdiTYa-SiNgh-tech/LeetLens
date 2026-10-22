@@ -76,12 +76,67 @@ export function useAuth() {
       },
     });
 
+    // Do NOT automatically grant access to currentUser / currentSession here.
+    // The user must complete 6-digit OTP verification before access is granted.
+
+    return { error, user: data.user };
+  }
+
+  async function verifyOtp(
+    email: string,
+    token: string
+  ): Promise<{
+    error: AuthError | null;
+    session: Session | null;
+    user: User | null;
+  }> {
+    const supabase = getSupabase();
+    if (!supabase) {
+      return {
+        error: {
+          message: "Supabase credentials are not configured.",
+          name: "ConfigError",
+          status: 500,
+        } as AuthError,
+        session: null,
+        user: null,
+      };
+    }
+
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: token.trim(),
+      type: "signup",
+    });
+
     if (!error && data.session) {
       currentSession.value = data.session;
       currentUser.value = data.user;
     }
 
-    return { error, user: data.user };
+    return { error, session: data.session, user: data.user };
+  }
+
+  async function resendSignupOtp(
+    email: string
+  ): Promise<{ error: AuthError | null }> {
+    const supabase = getSupabase();
+    if (!supabase) {
+      return {
+        error: {
+          message: "Supabase credentials are not configured.",
+          name: "ConfigError",
+          status: 500,
+        } as AuthError,
+      };
+    }
+
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: email.trim(),
+    });
+
+    return { error };
   }
 
   async function signIn(
@@ -185,6 +240,8 @@ export function useAuth() {
     isConfigured: isSupabaseConfigured(),
     initAuth,
     signUp,
+    verifyOtp,
+    resendSignupOtp,
     signIn,
     signOut,
     resetPasswordForEmail,

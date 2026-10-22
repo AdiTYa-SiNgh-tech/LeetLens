@@ -145,6 +145,72 @@
       </div>
     </el-form>
 
+    <!-- EMAIL OTP VERIFICATION SCREEN -->
+    <el-form
+      v-else-if="mode === 'verify'"
+      @submit.prevent="handleVerifyOtp"
+      label-position="top"
+    >
+      <div class="verify-instructions">
+        <p class="verify-desc">
+          {{
+            $t("verificationCodeSent", {
+              email: pendingEmail || email,
+            })
+          }}
+        </p>
+      </div>
+
+      <el-form-item :label="$t('otpLabel')">
+        <el-input
+          v-model="otpCode"
+          maxlength="6"
+          :placeholder="$t('otpPlaceholder')"
+          class="otp-input-field"
+          autocomplete="one-time-code"
+          @input="onOtpInput"
+          @keyup.enter="handleVerifyOtp"
+          input-style="text-align: center; font-size: 22px; letter-spacing: 6px; font-family: monospace; font-weight: 600;"
+        />
+      </el-form-item>
+
+      <el-button
+        type="primary"
+        class="auth-submit-btn"
+        :loading="loading"
+        :disabled="otpCode.length !== 6"
+        @click="handleVerifyOtp"
+      >
+        {{ $t("verifyButton") }}
+      </el-button>
+
+      <div class="resend-row">
+        <el-button
+          link
+          type="primary"
+          class="resend-btn"
+          :disabled="resendCooldown > 0 || loading"
+          @click="handleResendOtp"
+        >
+          {{
+            resendCooldown > 0
+              ? $t("resendCodeCooldown", { seconds: resendCooldown })
+              : $t("resendCode")
+          }}
+        </el-button>
+      </div>
+
+      <div class="auth-switch-text">
+        <el-link
+          :underline="false"
+          @click="switchMode('signup')"
+          class="subtle-link"
+        >
+          {{ $t("changeEmail") }}
+        </el-link>
+      </div>
+    </el-form>
+
     <!-- FORGOT PASSWORD FORM -->
     <el-form
       v-else-if="mode === 'forgot'"
@@ -222,14 +288,14 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from "vue";
+import { ref, computed, onBeforeUnmount } from "vue";
 import { useAuth } from "@/services/authService";
 import { useI18n } from "vue-i18n";
 import { ElMessage } from "element-plus";
 
 const props = defineProps<{
   modelValue: boolean;
-  initialMode?: "signin" | "signup" | "forgot" | "reset";
+  initialMode?: "signin" | "signup" | "forgot" | "reset" | "verify";
 }>();
 
 const emit = defineEmits<{
@@ -238,23 +304,34 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { signIn, signUp, resetPasswordForEmail, updatePassword } = useAuth();
+const {
+  signIn,
+  signUp,
+  verifyOtp,
+  resendSignupOtp,
+  resetPasswordForEmail,
+  updatePassword,
+} = useAuth();
 
 const visible = computed({
   get: () => props.modelValue,
   set: (val: boolean) => emit("update:modelValue", val),
 });
 
-const mode = ref<"signin" | "signup" | "forgot" | "reset">(
+const mode = ref<"signin" | "signup" | "forgot" | "reset" | "verify">(
   props.initialMode || "signin"
 );
 
 const email = ref("");
+const pendingEmail = ref("");
 const password = ref("");
 const confirmPassword = ref("");
+const otpCode = ref("");
 const loading = ref(false);
 const errorMessage = ref("");
 const infoMessage = ref("");
+const resendCooldown = ref(0);
+let cooldownTimer: number | null = null;
 
 const isValidEmail = computed(() => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
@@ -282,6 +359,8 @@ const dialogTitle = computed(() => {
       return t("signIn");
     case "signup":
       return t("signUp");
+    case "verify":
+      return t("verifyEmail");
     case "forgot":
       return t("forgotPassword");
     case "reset":
@@ -291,10 +370,43 @@ const dialogTitle = computed(() => {
   }
 });
 
-function switchMode(newMode: "signin" | "signup" | "forgot" | "reset") {
+function switchMode(
+  newMode: "signin" | "signup" | "forgot" | "reset" | "verify"
+) {
   mode.value = newMode;
   errorMessage.value = "";
   infoMessage.value = "";
+  if (newMode !== "verify") {
+    otpCode.value = "";
+  }
+}
+
+function startCooldown() {
+  resendCooldown.value = 60;
+  if (cooldownTimer) {
+    clearInterval(cooldownTimer);
+  }
+  cooldownTimer = window.setInterval(() => {
+    if (resendCooldown.value > 0) {
+      resendCooldown.value--;
+    } else {
+      if (cooldownTimer) {
+        clearInterval(cooldownTimer);
+        cooldownTimer = null;
+      }
+    }
+  }, 1000);
+}
+
+onBeforeUnmount(() => {
+  if (cooldownTimer) {
+    clearInterval(cooldownTimer);
+  }
+});
+
+function onOtpInput(val: string) {
+  // Filter out non-numeric characters
+  otpCode.value = val.replace(/\D/g, "").slice(0, 6);
 }
 
 async function handleSignIn() {
@@ -324,7 +436,8 @@ async function handleSignUp() {
   loading.value = true;
   errorMessage.value = "";
 
-  const { error, user } = await signUp(email.value, password.value);
+  const targetEmail = email.value.trim();
+  const { error, user } = await signUp(targetEmail, password.value);
   loading.value = false;
 
   if (error) {
@@ -332,12 +445,61 @@ async function handleSignUp() {
   } else {
     if (user && user.identities && user.identities.length === 0) {
       errorMessage.value = "An account with this email already exists.";
-    } else {
-      infoMessage.value = t("authSuccessSignUp");
-      ElMessage.success(t("authSuccessSignUp"));
-      visible.value = false;
+      return;
+    }
+
+    // Do NOT treat signup as complete. Show the 6-digit verification screen.
+    pendingEmail.value = targetEmail;
+    password.value = "";
+    confirmPassword.value = "";
+    otpCode.value = "";
+    mode.value = "verify";
+    startCooldown();
+    infoMessage.value = t("codeResent");
+  }
+}
+
+async function handleVerifyOtp() {
+  if (otpCode.value.length !== 6) {
+    errorMessage.value = t("invalidOtp");
+    return;
+  }
+
+  loading.value = true;
+  errorMessage.value = "";
+
+  const targetEmail = pendingEmail.value || email.value.trim();
+  const { error, session } = await verifyOtp(targetEmail, otpCode.value);
+  loading.value = false;
+
+  if (error) {
+    errorMessage.value = error.message;
+  } else {
+    ElMessage.success(t("verifySuccess"));
+    visible.value = false;
+    // Emit auth-success now that the account is confirmed and session is active
+    if (session) {
       emit("auth-success");
     }
+  }
+}
+
+async function handleResendOtp() {
+  if (resendCooldown.value > 0 || loading.value) return;
+
+  loading.value = true;
+  errorMessage.value = "";
+
+  const targetEmail = pendingEmail.value || email.value.trim();
+  const { error } = await resendSignupOtp(targetEmail);
+  loading.value = false;
+
+  if (error) {
+    errorMessage.value = error.message;
+  } else {
+    startCooldown();
+    infoMessage.value = t("codeResent");
+    ElMessage.success(t("codeResent"));
   }
 }
 
@@ -385,12 +547,15 @@ async function handleUpdatePassword() {
 }
 
 defineExpose({
-  open(targetMode: "signin" | "signup" | "forgot" | "reset" = "signin") {
+  open(
+    targetMode: "signin" | "signup" | "forgot" | "reset" | "verify" = "signin"
+  ) {
     mode.value = targetMode;
     errorMessage.value = "";
     infoMessage.value = "";
     password.value = "";
     confirmPassword.value = "";
+    otpCode.value = "";
     visible.value = true;
   },
 });
@@ -433,6 +598,17 @@ defineExpose({
   line-height: 1.4;
 }
 
+.verify-instructions {
+  margin-bottom: 16px;
+}
+
+.verify-desc {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0;
+}
+
 .auth-aux-row {
   display: flex;
   justify-content: flex-end;
@@ -459,6 +635,16 @@ defineExpose({
   border-color: #1d4ed8;
 }
 
+.resend-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.resend-btn {
+  font-size: 13px;
+}
+
 .auth-switch-text {
   display: flex;
   justify-content: center;
@@ -466,5 +652,14 @@ defineExpose({
   margin-top: 14px;
   font-size: 13px;
   color: #64748b;
+}
+
+.otp-input-field :deep(.el-input__inner) {
+  text-align: center;
+  font-size: 22px;
+  letter-spacing: 6px;
+  font-family: monospace;
+  font-weight: 600;
+  height: 44px;
 }
 </style>

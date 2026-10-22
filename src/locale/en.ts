@@ -54,6 +54,19 @@ export default {
   passwordsDoNotMatch: "Passwords do not match.",
   passwordTooShort: "Password must be at least 6 characters long.",
   validEmailRequired: "Please enter a valid email address.",
+  // Email OTP Verification
+  verifyEmail: "Verify Your Email",
+  verificationCodeSent:
+    "We sent a 6-digit verification code to {email}. Enter the code below to activate your account.",
+  otpLabel: "6-Digit Verification Code",
+  otpPlaceholder: "123456",
+  verifyButton: "Verify & Activate",
+  resendCode: "Resend Code",
+  resendCodeCooldown: "Resend in {seconds}s",
+  codeResent: "A new 6-digit verification code has been sent to your email.",
+  verifySuccess: "Email verified successfully! Welcome to LeetLens.",
+  invalidOtp: "Please enter the 6-digit verification code sent to your email.",
+  changeEmail: "Wrong email? Back to sign up",
   // Cloud & Sync
   cloudSynced: "Cloud Synced",
   guestMode: "Guest (Local)",
