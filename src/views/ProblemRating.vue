@@ -36,35 +36,26 @@
           </button>
         </nav>
 
-        <!-- Right: Sync status, Language, Auth -->
+        <!-- Right: Local Storage indicator, Backup & Restore, Language -->
         <div class="nav-actions">
-          <!-- Sync Status Pill -->
+          <!-- Local Storage Indicator -->
           <button
-            class="sync-indicator"
-            :class="{
-              'is-cloud': isAuthenticated,
-              'is-guest': !isAuthenticated,
-            }"
-            @click="handleSyncClick"
-            :title="isAuthenticated ? $t('refreshSync') : $t('signIn')"
+            class="storage-indicator"
+            @click="backupModalVisible = true"
+            :title="$t('backupAndRestore')"
           >
             <span class="dot"></span>
-            <span class="sync-text">
-              {{
-                syncInProgress
-                  ? $t("syncing")
-                  : isAuthenticated
-                  ? $t("cloudSynced")
-                  : $t("guestMode")
-              }}
-            </span>
-            <el-icon
-              v-if="isAuthenticated"
-              class="sync-icon"
-              :class="{ spin: syncInProgress }"
-            >
-              <Refresh />
-            </el-icon>
+            <span class="storage-text">{{ $t("localStorageBadge") }}</span>
+          </button>
+
+          <!-- Backup & Restore Action Button -->
+          <button
+            class="nav-btn-action"
+            @click="backupModalVisible = true"
+            :title="$t('backupAndRestore')"
+          >
+            <el-icon><FolderChecked /></el-icon>
+            <span>{{ $t("backupAndRestore") }}</span>
           </button>
 
           <!-- Language Selector -->
@@ -80,53 +71,11 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-
-          <!-- Guest: Sign in / Get Started -->
-          <template v-if="!isAuthenticated">
-            <button class="nav-btn-text" @click="openAuthModal('signin')">
-              {{ $t("signIn") }}
-            </button>
-            <button class="btn-primary" @click="openAuthModal('signup')">
-              {{ $t("getStarted") }}
-            </button>
-          </template>
-
-          <!-- Authenticated: Profile Dropdown -->
-          <template v-else>
-            <el-dropdown trigger="click" @command="handleUserMenuCommand">
-              <button class="user-btn">
-                <span class="user-avatar">{{ userInitial }}</span>
-                <span class="user-email">{{ truncatedEmail }}</span>
-                <el-icon class="icon-right"><ArrowDown /></el-icon>
-              </button>
-              <template #dropdown>
-                <el-dropdown-menu class="user-menu-dropdown">
-                  <div class="menu-user-header">
-                    <span class="menu-email">{{ userEmail }}</span>
-                    <span class="menu-status">{{ $t("cloudSynced") }}</span>
-                  </div>
-                  <el-dropdown-item divided command="sync">
-                    <el-icon><Refresh /></el-icon>{{ $t("refreshSync") }}
-                  </el-dropdown-item>
-                  <el-dropdown-item command="export">
-                    <el-icon><Download /></el-icon>{{ $t("export") }}
-                  </el-dropdown-item>
-                  <el-dropdown-item command="import">
-                    <el-icon><Upload /></el-icon>{{ $t("import") }}
-                  </el-dropdown-item>
-                  <el-dropdown-item divided command="signout">
-                    <el-icon color="#dc2626"><SwitchButton /></el-icon>
-                    <span class="danger-text">{{ $t("signOut") }}</span>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </template>
         </div>
       </div>
     </header>
 
-    <!-- HIDDEN FILE INPUT -->
+    <!-- HIDDEN FILE INPUT FOR TOOLBAR IMPORT -->
     <input
       type="file"
       ref="fileInputRef"
@@ -440,42 +389,25 @@
       </section>
     </main>
 
-    <!-- AUTH MODAL -->
-    <auth-modal
-      v-model="authModalVisible"
-      :initial-mode="authModalMode"
-      @auth-success="handleAuthSuccess"
-      ref="authModalRef"
-    />
-
-    <!-- MIGRATION MODAL -->
-    <migration-modal
-      v-model="migrationModalVisible"
-      :local-count="localSolvedCount"
-      :cloud-count="cloudSolvedCount"
-      :loading="migrationLoading"
-      @merge="handleConfirmMigration"
-      @skip="handleSkipMigration"
+    <!-- BACKUP & RESTORE MODAL -->
+    <backup-modal
+      v-model="backupModalVisible"
+      :solved-count="solvedIds.size"
+      @data-changed="onStorageDataChanged"
     />
   </div>
 </template>
 
 <script lang="ts" setup>
-import { reactive, onMounted, ref, computed, watch } from "vue";
+import { reactive, onMounted, ref, computed } from "vue";
 import axios, { AxiosResponse } from "axios";
 import { ElMessage } from "element-plus";
 import { useI18n } from "vue-i18n";
-import { useAuth } from "@/services/authService";
-import { createCloudProgressService } from "@/services/progressService";
-import AuthModal from "@/components/AuthModal.vue";
-import MigrationModal from "@/components/MigrationModal.vue";
+import { storageService } from "@/services/storageService";
 import RatingDistribution from "@/components/RatingDistribution.vue";
+import BackupModal from "@/components/BackupModal.vue";
 
 const url = "./data.json";
-
-// Storage keys
-const GUEST_STORAGE_KEY = "leetcode_guest_solved_ids";
-const LEGACY_STORAGE_KEY = "leetcode_solved_problem_ids";
 
 interface Problem {
   ContestID_en: string;
@@ -499,13 +431,6 @@ interface SortInfo {
 }
 
 const { t, locale } = useI18n();
-const {
-  isAuthenticated,
-  userEmail,
-  initAuth,
-  signOut: authSignOut,
-  passwordRecoveryMode,
-} = useAuth();
 
 // Active tab
 const currentTab = ref<"dashboard" | "problems">("dashboard");
@@ -528,41 +453,12 @@ const currentPage = ref(1);
 const statusFilter = ref<"all" | "solved" | "unsolved">("all");
 const loadingData = ref(true);
 
-// Solved progress state
+// Solved progress state (managed via storageService)
 const solvedIds = ref<Set<number>>(new Set());
-const syncInProgress = ref(false);
 
 // Modals
-const authModalVisible = ref(false);
-const authModalMode = ref<"signin" | "signup" | "forgot" | "reset">("signin");
-const authModalRef = ref<InstanceType<typeof AuthModal> | null>(null);
-
-const migrationModalVisible = ref(false);
-const localSolvedCount = ref(0);
-const cloudSolvedCount = ref(0);
-const migrationLoading = ref(false);
-
+const backupModalVisible = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
-
-// User email display helpers
-const userInitial = computed(() => {
-  return (userEmail.value.charAt(0) || "U").toUpperCase();
-});
-
-const truncatedEmail = computed(() => {
-  const email = userEmail.value;
-  if (!email) return "";
-  if (email.length <= 20) return email;
-  return email.substring(0, 17) + "...";
-});
-
-// Watch password recovery trigger
-watch(passwordRecoveryMode, (isRecovery) => {
-  if (isRecovery) {
-    authModalMode.value = "reset";
-    authModalVisible.value = true;
-  }
-});
 
 // Dashboard metrics
 const totalProblemsCount = computed(() => problemSetAll.length);
@@ -602,325 +498,74 @@ function getRatingTextStyle(rating: number) {
   }
 }
 
-// Local storage management
-function getGuestSolvedIds(): Set<number> {
-  try {
-    const raw =
-      localStorage.getItem(GUEST_STORAGE_KEY) ||
-      localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        const valid = parsed
-          .map((id) => Number(id))
-          .filter((id) => Number.isInteger(id) && id > 0);
-        return new Set(valid);
-      }
-    }
-  } catch (e) {
-    console.error("Failed to read guest storage:", e);
-  }
-  return new Set();
-}
-
-function saveGuestSolvedIds(ids: Set<number>) {
-  try {
-    localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(Array.from(ids)));
-  } catch (e) {
-    console.error("Failed to save guest storage:", e);
-  }
-}
-
-// Progress loading
-async function loadProgress() {
-  if (isAuthenticated.value) {
-    const cloudService = createCloudProgressService();
-    if (cloudService) {
-      try {
-        syncInProgress.value = true;
-        const cloudSet = await cloudService.fetchSolvedIds();
-        solvedIds.value = cloudSet;
-      } catch (err) {
-        console.error("Error loading cloud progress:", err);
-      } finally {
-        syncInProgress.value = false;
-      }
-      return;
-    }
-  }
-  solvedIds.value = getGuestSolvedIds();
-}
-
 function isSolved(id: number): boolean {
   return solvedIds.value.has(id);
 }
 
-// Toggle solved state
-async function toggleSolved(id: number) {
-  const isCurrentlySolved = solvedIds.value.has(id);
-  const nextSet = new Set(solvedIds.value);
-
-  if (isCurrentlySolved) {
-    nextSet.delete(id);
-  } else {
-    nextSet.add(id);
-  }
-
-  solvedIds.value = nextSet;
+// Toggle solved state with immediate local storage persistence
+function toggleSolved(id: number) {
+  const result = storageService.toggleSolved(id);
+  solvedIds.value = new Set(result.allSolved);
   query();
-
-  if (isAuthenticated.value) {
-    const cloudService = createCloudProgressService();
-    if (cloudService) {
-      try {
-        if (isCurrentlySolved) {
-          await cloudService.markUnsolved(id);
-        } else {
-          await cloudService.markSolved(id);
-        }
-      } catch (err) {
-        console.error("Failed to save status to cloud:", err);
-        const revertSet = new Set(solvedIds.value);
-        if (isCurrentlySolved) {
-          revertSet.add(id);
-        } else {
-          revertSet.delete(id);
-        }
-        solvedIds.value = revertSet;
-        query();
-        ElMessage.error(t("syncError"));
-      }
-    }
-  } else {
-    saveGuestSolvedIds(nextSet);
-  }
 }
 
 function tableRowClassName({ row }: { row: Problem }): string {
   return isSolved(row.ID) ? "solved-row" : "";
 }
 
-// Authentication handling
-function openAuthModal(mode: "signin" | "signup" | "forgot" | "reset") {
-  authModalMode.value = mode;
-  authModalVisible.value = true;
-}
-
-async function handleAuthSuccess() {
-  await handlePostLoginCheck();
-}
-
-async function handlePostLoginCheck() {
-  const guestSet = getGuestSolvedIds();
-  const cloudService = createCloudProgressService();
-
-  if (!cloudService) {
-    await loadProgress();
-    query();
-    return;
-  }
-
-  syncInProgress.value = true;
+// Export progress
+function exportProgress() {
   try {
-    const cloudSet = await cloudService.fetchSolvedIds();
-    solvedIds.value = cloudSet;
-
-    const unmergedLocalIds = Array.from(guestSet).filter(
-      (id) => !cloudSet.has(id)
-    );
-    if (unmergedLocalIds.length > 0) {
-      localSolvedCount.value = guestSet.size;
-      cloudSolvedCount.value = cloudSet.size;
-      migrationModalVisible.value = true;
-    }
+    const { filename, blob } = storageService.generateBackup();
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(downloadUrl);
+    ElMessage.success(t("exportSuccess"));
   } catch (err) {
-    console.error("Post login sync error:", err);
-  } finally {
-    syncInProgress.value = false;
-    query();
+    console.error("Export error:", err);
+    ElMessage.error("Failed to export backup.");
   }
-}
-
-async function handleConfirmMigration() {
-  const guestSet = getGuestSolvedIds();
-  const cloudService = createCloudProgressService();
-  if (!cloudService) return;
-
-  migrationLoading.value = true;
-  try {
-    const { added, error } = await cloudService.mergeSolvedIds(
-      Array.from(guestSet)
-    );
-    if (error) {
-      ElMessage.error(error);
-    } else {
-      ElMessage.success(t("migrationSuccess", { count: added }));
-      const nextSet = await cloudService.fetchSolvedIds();
-      solvedIds.value = nextSet;
-      localStorage.removeItem(GUEST_STORAGE_KEY);
-      localStorage.removeItem(LEGACY_STORAGE_KEY);
-      migrationModalVisible.value = false;
-      query();
-    }
-  } catch (e) {
-    console.error("Migration error:", e);
-    ElMessage.error(t("syncError"));
-  } finally {
-    migrationLoading.value = false;
-  }
-}
-
-function handleSkipMigration() {
-  migrationModalVisible.value = false;
-  ElMessage.info("Using cloud progress.");
-}
-
-async function handleSignOut() {
-  await authSignOut();
-  solvedIds.value = new Set();
-  await loadProgress();
-  query();
-  ElMessage.success(t("authSuccessSignOut"));
-}
-
-function handleUserMenuCommand(command: string) {
-  if (command === "sync") {
-    handleSyncClick();
-  } else if (command === "export") {
-    exportProgress();
-  } else if (command === "import") {
-    triggerImport();
-  } else if (command === "signout") {
-    handleSignOut();
-  }
-}
-
-async function handleSyncClick() {
-  if (!isAuthenticated.value) {
-    openAuthModal("signin");
-    return;
-  }
-
-  const cloudService = createCloudProgressService();
-  if (!cloudService) return;
-
-  syncInProgress.value = true;
-  try {
-    const set = await cloudService.fetchSolvedIds();
-    solvedIds.value = set;
-    query();
-    ElMessage.success(t("syncSuccess"));
-  } catch (err) {
-    console.error("Sync error:", err);
-    ElMessage.error(t("syncError"));
-  } finally {
-    syncInProgress.value = false;
-  }
-}
-
-// Import & Export
-async function exportProgress() {
-  let idsToExport: number[] = [];
-
-  if (isAuthenticated.value) {
-    const cloudService = createCloudProgressService();
-    if (cloudService) {
-      try {
-        idsToExport = await cloudService.exportProgress();
-      } catch (e) {
-        console.error("Failed to export from cloud:", e);
-      }
-    }
-  }
-
-  if (idsToExport.length === 0) {
-    idsToExport = Array.from(solvedIds.value).sort((a, b) => a - b);
-  }
-
-  const payload = {
-    version: 1,
-    appName: "LeetLens",
-    exportedAt: new Date().toISOString(),
-    totalSolved: idsToExport.length,
-    solvedProblemIds: idsToExport,
-  };
-
-  const jsonStr = JSON.stringify(payload, null, 2);
-  const blob = new Blob([jsonStr], { type: "application/json" });
-  const downloadUrl = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = downloadUrl;
-  const dateStr = new Date().toISOString().slice(0, 10);
-  link.download = `leetlens_progress_${dateStr}.json`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(downloadUrl);
-  ElMessage.success(t("exportSuccess"));
 }
 
 function triggerImport() {
   fileInputRef.value?.click();
 }
 
+// Toolbar JSON Import handler
 function onFileImported(event: Event) {
   const input = event.target as HTMLInputElement;
   if (!input.files || input.files.length === 0) return;
   const file = input.files[0];
   const reader = new FileReader();
 
-  reader.onload = async (e) => {
+  reader.onload = (e) => {
     try {
       const text = e.target?.result as string;
-      const parsed = JSON.parse(text);
-      let incomingIds: number[] = [];
+      const validation = storageService.validateBackup(text);
 
-      if (Array.isArray(parsed)) {
-        incomingIds = parsed;
-      } else if (parsed && Array.isArray(parsed.solvedProblemIds)) {
-        incomingIds = parsed.solvedProblemIds;
+      if (!validation.valid || !validation.data) {
+        ElMessage.error(t("importError"));
+        return;
+      }
+
+      const result = storageService.applyImport(validation.data, "merge");
+      if (result.success) {
+        solvedIds.value = storageService.getSolvedIds();
+        query();
+        ElMessage.success(
+          t("importSuccess", {
+            count: validation.incomingSolvedCount,
+            added: result.added,
+          })
+        );
       } else {
-        throw new Error("Invalid structure");
+        ElMessage.error(t("importError"));
       }
-
-      const validIds = incomingIds
-        .map((id) => Number(id))
-        .filter((id) => Number.isInteger(id) && id > 0);
-
-      if (validIds.length === 0 && incomingIds.length > 0) {
-        throw new Error("No valid problem IDs found in file");
-      }
-
-      if (isAuthenticated.value) {
-        const cloudService = createCloudProgressService();
-        if (cloudService) {
-          const { added, error } = await cloudService.mergeSolvedIds(validIds);
-          if (error) {
-            ElMessage.error(error);
-            return;
-          }
-          const updated = await cloudService.fetchSolvedIds();
-          solvedIds.value = updated;
-          query();
-          ElMessage.success(
-            t("importSuccess", { count: validIds.length, added })
-          );
-          return;
-        }
-      }
-
-      const next = new Set(solvedIds.value);
-      let added = 0;
-      for (const id of validIds) {
-        if (!next.has(id)) {
-          next.add(id);
-          added++;
-        }
-      }
-      solvedIds.value = next;
-      saveGuestSolvedIds(next);
-      query();
-      ElMessage.success(t("importSuccess", { count: validIds.length, added }));
     } catch (err) {
       console.error("Import error:", err);
       ElMessage.error(t("importError"));
@@ -931,10 +576,14 @@ function onFileImported(event: Event) {
   reader.readAsText(file);
 }
 
+function onStorageDataChanged() {
+  solvedIds.value = storageService.getSolvedIds();
+  query();
+}
+
 // Lifecycle
 onMounted(async () => {
-  await initAuth();
-  await loadProgress();
+  solvedIds.value = storageService.getSolvedIds();
 
   axios
     .get(url)
@@ -1141,7 +790,7 @@ function reset() {
   gap: 8px;
 }
 
-.sync-indicator {
+.storage-indicator {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -1149,48 +798,48 @@ function reset() {
   border-radius: 4px;
   font-size: 11px;
   font-weight: 500;
-  background: transparent;
+  background: #f1f5f9;
   border: 1px solid #e2e8f0;
+  color: #16a34a;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.sync-indicator .dot {
+.storage-indicator:hover {
+  background: #e2e8f0;
+}
+
+.storage-indicator .dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-}
-
-.sync-indicator.is-cloud {
-  color: #16a34a;
-}
-
-.sync-indicator.is-cloud .dot {
   background-color: #16a34a;
 }
 
-.sync-indicator.is-guest {
-  color: #d97706;
+.storage-text {
+  font-weight: 500;
+  color: #334155;
 }
 
-.sync-indicator.is-guest .dot {
-  background-color: #d97706;
+.nav-btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.sync-icon {
-  font-size: 11px;
-}
-
-.spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.nav-btn-action:hover {
+  color: #2563eb;
+  border-color: #bfdbfe;
+  background: #eff6ff;
 }
 
 .nav-btn-text {
@@ -1213,81 +862,6 @@ function reset() {
 
 .icon-right {
   font-size: 10px;
-}
-
-.btn-primary {
-  background: #2563eb;
-  color: #ffffff;
-  border: none;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 5px 12px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.btn-primary:hover {
-  background: #1d4ed8;
-}
-
-.user-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  padding: 3px 8px 3px 4px;
-  border-radius: 20px;
-  cursor: pointer;
-}
-
-.user-btn:hover {
-  border-color: #cbd5e1;
-}
-
-.user-avatar {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #2563eb;
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.user-email {
-  font-size: 12px;
-  color: #334155;
-  font-weight: 500;
-}
-
-.user-menu-dropdown {
-  min-width: 180px;
-}
-
-.menu-user-header {
-  padding: 8px 16px;
-  display: flex;
-  flex-direction: column;
-}
-
-.menu-email {
-  font-size: 12px;
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.menu-status {
-  font-size: 11px;
-  color: #16a34a;
-}
-
-.danger-text {
-  color: #dc2626;
 }
 
 /* MAIN BODY */
@@ -1348,58 +922,65 @@ function reset() {
 .rate-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .mini-progress-track {
   flex: 1;
-  max-width: 80px;
-  height: 4px;
-  background: #f1f5f9;
-  border-radius: 2px;
+  max-width: 90px;
+  height: 6px;
+  background-color: #f1f5f9;
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .mini-progress-fill {
   height: 100%;
-  background: #2563eb;
-  border-radius: 2px;
+  background-color: #2563eb;
+  border-radius: 3px;
+  transition: width 0.3s ease;
 }
 
-/* TOOLBAR */
+/* EXPLORER & TOOLBAR */
+.explorer-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   flex-wrap: wrap;
-  gap: 10px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   padding: 10px 14px;
-  margin-bottom: 12px;
 }
 
 .toolbar-filters {
   display: flex;
   align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
-  gap: 8px 12px;
 }
 
 .filter-search {
-  width: 200px;
+  width: 190px;
 }
 
 .inline-field {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .field-label {
   font-size: 12px;
   color: #64748b;
+  font-weight: 500;
 }
 
 .dash {
@@ -1408,7 +989,7 @@ function reset() {
 }
 
 .btn-group {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
 }
@@ -1417,25 +998,28 @@ function reset() {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
 }
 
 .filter-count {
   font-size: 12px;
   color: #64748b;
   font-weight: 500;
+  margin-right: 4px;
 }
 
 .tool-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  gap: 4px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  font-size: 12px;
-  color: #475569;
-  padding: 4px 8px;
+  padding: 5px 9px;
   border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .tool-btn:hover {
@@ -1444,23 +1028,45 @@ function reset() {
   color: #0f172a;
 }
 
-/* TABLE */
+/* TABLE STYLING */
 .table-wrap {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
   border-radius: 6px;
+  border: 1px solid #e2e8f0;
   overflow: hidden;
 }
 
-.col-id {
-  font-family: monospace;
+:deep(.el-table) {
+  --el-table-header-bg-color: #f8fafc;
+  --el-table-header-text-color: #475569;
+  --el-table-text-color: #1e293b;
+  --el-table-border-color: #f1f5f9;
+  font-size: 13px;
+}
+
+:deep(.el-table th.el-table__cell) {
+  font-weight: 600;
   font-size: 12px;
-  color: #64748b;
-  font-weight: 500;
+  padding: 8px 0;
+  text-transform: none;
+}
+
+:deep(.el-table td.el-table__cell) {
+  padding: 6px 0;
+}
+
+:deep(.el-table--border .el-table__inner-wrapper::after),
+:deep(.el-table--border::after),
+:deep(.el-table--border::before) {
+  display: none;
+}
+
+:deep(.solved-row) {
+  background-color: #fcfdfc !important;
 }
 
 .title-cell {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
 }
@@ -1470,33 +1076,41 @@ function reset() {
   flex-shrink: 0;
 }
 
+.col-id {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
 .problem-link {
-  font-size: 13px;
-  color: #0f172a !important;
   font-weight: 500;
+  color: #1e293b !important;
+  font-size: 13px;
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 .problem-link:hover {
   color: #2563eb !important;
-  text-decoration: underline;
 }
 
 .problem-link.solved {
-  color: #16a34a !important;
+  color: #334155 !important;
 }
 
 .contest-link {
   font-size: 12px;
   color: #64748b !important;
+  text-decoration: none;
 }
 
 .contest-link:hover {
-  color: #0f172a !important;
+  color: #2563eb !important;
 }
 
 .index-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: #64748b;
 }
@@ -1507,49 +1121,32 @@ function reset() {
 }
 
 .empty-box {
-  padding: 30px;
+  padding: 30px 0;
+  text-align: center;
   color: #64748b;
+}
+
+.empty-box p {
+  margin-bottom: 12px;
   font-size: 13px;
 }
 
-/* PAGINATION */
 .pagination-bar {
   display: flex;
   justify-content: flex-end;
-  padding-top: 14px;
+  padding: 12px 4px;
 }
 
-/* RESPONSIVE */
 @media (max-width: 900px) {
-  .nav-container {
-    height: auto;
-    padding: 10px 14px;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  .nav-tabs {
-    order: 3;
-    width: 100%;
-  }
   .summary-metrics-row {
     flex-wrap: wrap;
-    gap: 12px 20px;
+    gap: 12px;
   }
   .metric-divider {
     display: none;
   }
-}
-
-@media (max-width: 600px) {
-  .toolbar-filters {
-    width: 100%;
-  }
-  .filter-search {
-    width: 100%;
-  }
-  .toolbar-tools {
-    width: 100%;
-    justify-content: space-between;
+  .metric-item {
+    min-width: 45%;
   }
 }
 </style>
