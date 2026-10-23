@@ -227,6 +227,7 @@
                 size="default"
                 :icon="Search"
                 @click="query"
+                class="search-btn"
               >
                 {{ $t("query") }}
               </el-button>
@@ -1063,6 +1064,29 @@ function reset() {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.search-btn {
+  background-color: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+.search-btn:hover,
+.search-btn:focus {
+  background-color: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  color: #ffffff !important;
+}
+
+.search-btn:active {
+  background-color: #1e40af !important;
+  border-color: #1e40af !important;
+  color: #ffffff !important;
+}
+
+.search-btn :deep(.el-icon) {
+  color: #ffffff !important;
 }
 
 .toolbar-tools {
