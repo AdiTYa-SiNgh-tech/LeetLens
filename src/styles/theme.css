@@ -1,7 +1,8 @@
-/* LeetLens Clean & Minimal Light Theme (GitHub & Linear inspired) */
+/* LeetLens Modern & Refined Developer Theme (Linear & GitHub inspired) */
 :root {
   --bg-app: #f8fafc;
   --bg-surface: #ffffff;
+  --bg-surface-hover: #f1f5f9;
   --border-subtle: #e2e8f0;
   --border-strong: #cbd5e1;
   --text-primary: #0f172a;
@@ -9,21 +10,31 @@
   --text-muted: #94a3b8;
   --accent-blue: #2563eb;
   --accent-blue-hover: #1d4ed8;
+  --accent-blue-subtle: #eff6ff;
   --color-success: #16a34a;
+  --color-success-subtle: #f0fdf4;
   --color-warning: #d97706;
+  --color-warning-subtle: #fffbeb;
   --color-danger: #dc2626;
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
+  --color-danger-subtle: #fef2f2;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
 }
 
-html, body {
+html,
+body {
   background-color: var(--bg-app);
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Element Plus Customization */
@@ -31,6 +42,8 @@ html, body {
   --el-color-primary: #2563eb;
   --el-color-primary-light-3: #60a5fa;
   --el-color-primary-light-5: #93c5fd;
+  --el-color-primary-light-7: #bfdbfe;
+  --el-color-primary-light-9: #eff6ff;
   --el-color-primary-dark-2: #1d4ed8;
   --el-color-success: #16a34a;
   --el-color-warning: #d97706;
@@ -45,6 +58,88 @@ html, body {
   --el-border-color: #e2e8f0;
   --el-border-color-light: #f1f5f9;
   --el-border-color-lighter: #f8fafc;
+  --el-border-radius-base: 6px;
+  --el-border-radius-small: 4px;
+}
+
+/* Element Plus Input & Button Refinements */
+.el-input__wrapper {
+  box-shadow: 0 0 0 1px #e2e8f0 inset !important;
+  border-radius: 6px !important;
+  background-color: #ffffff !important;
+  transition: all 0.15s ease !important;
+}
+
+.el-input__wrapper:hover {
+  box-shadow: 0 0 0 1px #cbd5e1 inset !important;
+}
+
+.el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px #2563eb inset, 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+
+.el-button {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  transition: all 0.15s ease !important;
+}
+
+.el-button--primary {
+  background-color: #2563eb !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2) !important;
+}
+
+.el-button--primary:hover,
+.el-button--primary:focus {
+  background-color: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+}
+
+.el-button--default {
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+  background-color: #ffffff !important;
+}
+
+.el-button--default:hover {
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  background-color: #f8fafc !important;
+}
+
+/* Radio Button Group (Segmented Control style) */
+.el-radio-group {
+  display: inline-flex !important;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 7px;
+  border: 1px solid #e2e8f0;
+}
+
+.el-radio-button__inner {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 5px !important;
+  box-shadow: none !important;
+  color: #64748b !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  padding: 5px 12px !important;
+  height: auto !important;
+  transition: all 0.15s ease !important;
+}
+
+.el-radio-button__inner:hover {
+  color: #0f172a !important;
+}
+
+.el-radio-button.is-active .el-radio-button__inner {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
 }
 
 /* Subtle Table Styling */
@@ -58,11 +153,11 @@ html, body {
   background-color: #f8fafc !important;
   color: #475569 !important;
   font-weight: 600 !important;
-  font-size: 12px !important;
+  font-size: 11.5px !important;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
   border-bottom: 1px solid #e2e8f0 !important;
-  padding: 10px 0 !important;
+  padding: 9px 0 !important;
 }
 
 .el-table td.el-table__cell {
@@ -74,13 +169,31 @@ html, body {
   background-color: #f8fafc !important;
 }
 
-/* Solved problem row styling: subtle green accent */
+/* Solved problem row styling: very clean, subtle indicator */
 .el-table .solved-row > td.el-table__cell {
-  background-color: #f0fdf4 !important;
+  background-color: #fcfffd !important;
 }
 
 .el-table--enable-row-hover .el-table__body tr.solved-row:hover > td.el-table__cell {
-  background-color: #dcfce7 !important;
+  background-color: #f0fdf4 !important;
+}
+
+/* Clean Element Plus Checkbox */
+.el-checkbox__inner {
+  border-radius: 4px !important;
+  border-color: #cbd5e1 !important;
+  width: 16px !important;
+  height: 16px !important;
+  transition: all 0.12s ease !important;
+}
+
+.el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: #16a34a !important;
+  border-color: #16a34a !important;
+}
+
+.el-checkbox__inner:hover {
+  border-color: #16a34a !important;
 }
 
 /* Global scrollbars */
@@ -90,7 +203,7 @@ html, body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f8fafc;
 }
 
 ::-webkit-scrollbar-thumb {

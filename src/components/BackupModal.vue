@@ -8,12 +8,12 @@
     :destroy-on-close="false"
   >
     <div class="backup-container">
-      <!-- Info Banner -->
+      <!-- Storage Status Card -->
       <div class="storage-info-card">
         <div class="info-row">
           <div class="info-stat">
             <span class="stat-label">{{ $t("storedSolvedCount") }}</span>
-            <span class="stat-value">{{ solvedCount }}</span>
+            <span class="stat-value text-success">{{ solvedCount }}</span>
           </div>
           <div class="stat-divider"></div>
           <div class="info-stat">
@@ -21,52 +21,61 @@
             <span class="stat-value date-text">{{ formattedLastUpdated }}</span>
           </div>
         </div>
-        <p class="storage-notice">
+
+        <div class="storage-notice-box">
           <el-icon class="notice-icon"><InfoFilled /></el-icon>
-          <span>{{ $t("localStorageNotice") }}</span>
-        </p>
+          <span class="notice-text">{{ $t("localStorageNotice") }}</span>
+        </div>
       </div>
 
-      <!-- Action: Export -->
-      <div class="backup-section">
-        <div class="section-text">
-          <h4 class="section-title">{{ $t("exportBackup") }}</h4>
-          <p class="section-desc">{{ $t("exportBackupDesc") }}</p>
+      <!-- Action List -->
+      <div class="action-card-list">
+        <!-- Action: Export -->
+        <div class="action-card">
+          <div class="section-text">
+            <h4 class="section-title">{{ $t("exportBackup") }}</h4>
+            <p class="section-desc">{{ $t("exportBackupDesc") }}</p>
+          </div>
+          <el-button type="primary" :icon="Download" @click="handleExport">
+            {{ $t("exportBackup") }}
+          </el-button>
         </div>
-        <el-button type="primary" :icon="Download" @click="handleExport">
-          {{ $t("exportBackup") }}
-        </el-button>
-      </div>
 
-      <!-- Action: Import -->
-      <div class="backup-section">
-        <div class="section-text">
-          <h4 class="section-title">{{ $t("importBackup") }}</h4>
-          <p class="section-desc">{{ $t("importBackupDesc") }}</p>
+        <!-- Action: Import -->
+        <div class="action-card">
+          <div class="section-text">
+            <h4 class="section-title">{{ $t("importBackup") }}</h4>
+            <p class="section-desc">{{ $t("importBackupDesc") }}</p>
+          </div>
+          <el-button :icon="Upload" @click="triggerFileInput">
+            {{ $t("selectBackupFile") }}
+          </el-button>
         </div>
-        <el-button :icon="Upload" @click="triggerFileInput">
-          {{ $t("selectBackupFile") }}
-        </el-button>
-      </div>
 
-      <!-- Hidden file input for import -->
-      <input
-        type="file"
-        ref="fileInputRef"
-        accept=".json"
-        @change="handleFileSelected"
-        style="display: none"
-      />
+        <!-- Hidden file input for import -->
+        <input
+          type="file"
+          ref="fileInputRef"
+          accept=".json"
+          @change="handleFileSelected"
+          style="display: none"
+        />
 
-      <!-- Action: Clear / Reset -->
-      <div class="backup-section danger-section">
-        <div class="section-text">
-          <h4 class="section-title danger-text">{{ $t("clearAllData") }}</h4>
-          <p class="section-desc">{{ $t("clearAllDataDesc") }}</p>
+        <!-- Action: Clear / Reset -->
+        <div class="action-card danger-card">
+          <div class="section-text">
+            <h4 class="section-title danger-text">{{ $t("clearAllData") }}</h4>
+            <p class="section-desc">{{ $t("clearAllDataDesc") }}</p>
+          </div>
+          <el-button
+            type="danger"
+            plain
+            :icon="Delete"
+            @click="handleClearData"
+          >
+            {{ $t("clearAllData") }}
+          </el-button>
         </div>
-        <el-button type="danger" plain :icon="Delete" @click="handleClearData">
-          {{ $t("clearAllData") }}
-        </el-button>
       </div>
     </div>
 
@@ -267,13 +276,13 @@ async function handleClearData() {
 .backup-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .storage-info-card {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 14px 16px;
 }
 
@@ -282,7 +291,7 @@ async function handleClearData() {
   align-items: center;
   justify-content: space-around;
   padding-bottom: 12px;
-  border-bottom: 1px solid #edf2f7;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .info-stat {
@@ -294,22 +303,28 @@ async function handleClearData() {
 
 .stat-label {
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   color: #64748b;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
 }
 
 .stat-value {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.stat-value.text-success {
+  color: #16a34a;
 }
 
 .date-text {
   font-size: 13px;
   font-weight: 600;
   color: #334155;
+  margin-top: 3px;
 }
 
 .stat-divider {
@@ -318,33 +333,51 @@ async function handleClearData() {
   background-color: #cbd5e1;
 }
 
-.storage-notice {
+.storage-notice-box {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: 8px;
   margin-top: 10px;
-  margin-bottom: 0;
-  font-size: 12px;
-  line-height: 1.45;
-  color: #64748b;
+  padding: 8px 10px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
 }
 
 .notice-icon {
   font-size: 14px;
-  color: #3b82f6;
+  color: #2563eb;
   margin-top: 2px;
   flex-shrink: 0;
 }
 
-.backup-section {
+.notice-text {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #1e40af;
+}
+
+.action-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 12px 14px;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  border-radius: 7px;
   background: #ffffff;
   gap: 16px;
+  transition: all 0.15s ease;
+}
+
+.action-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 .section-text {
@@ -353,7 +386,7 @@ async function handleClearData() {
 
 .section-title {
   margin: 0 0 2px 0;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   color: #0f172a;
 }
@@ -365,9 +398,13 @@ async function handleClearData() {
   line-height: 1.4;
 }
 
-.danger-section {
+.danger-card {
   border-color: #fee2e2;
-  background-color: #fff5f5;
+  background-color: #fffafa;
+}
+
+.danger-card:hover {
+  border-color: #fca5a5;
 }
 
 .danger-text {
@@ -379,15 +416,15 @@ async function handleClearData() {
 }
 
 .confirm-message {
-  margin: 0 0 10px 0;
-  font-size: 14px;
+  margin: 0 0 8px 0;
+  font-size: 13.5px;
   font-weight: 500;
   color: #0f172a;
 }
 
 .confirm-prompt {
-  margin: 0 0 14px 0;
-  font-size: 13px;
+  margin: 0 0 12px 0;
+  font-size: 12.5px;
   color: #64748b;
 }
 
@@ -402,7 +439,7 @@ async function handleClearData() {
 }
 
 .mode-title {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 500;
   color: #1e293b;
 }

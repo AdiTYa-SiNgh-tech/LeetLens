@@ -5,16 +5,21 @@
       <div class="nav-container">
         <!-- Logo & Brand -->
         <div class="brand" @click="currentTab = 'dashboard'">
-          <svg
-            class="brand-logo"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 7v5l3 3" />
-          </svg>
+          <div class="brand-icon-wrap">
+            <svg
+              class="brand-logo"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="7.5" />
+              <line x1="21" y1="21" x2="16.5" y2="16.5" />
+              <path d="M11 7.5v7M7.5 11h7" />
+            </svg>
+          </div>
           <span class="brand-title">LeetLens</span>
         </div>
 
@@ -25,20 +30,22 @@
             :class="{ active: currentTab === 'dashboard' }"
             @click="currentTab = 'dashboard'"
           >
-            {{ $t("navDashboard") }}
+            <el-icon class="tab-icon"><Odometer /></el-icon>
+            <span>{{ $t("navDashboard") }}</span>
           </button>
           <button
             class="nav-tab"
             :class="{ active: currentTab === 'problems' }"
             @click="currentTab = 'problems'"
           >
-            {{ $t("navProblems") }}
+            <el-icon class="tab-icon"><Document /></el-icon>
+            <span>{{ $t("navProblems") }}</span>
           </button>
         </nav>
 
         <!-- Right: Local Storage indicator, Backup & Restore, Language -->
         <div class="nav-actions">
-          <!-- Local Storage Indicator -->
+          <!-- Local Storage Indicator Pill -->
           <button
             class="storage-indicator"
             @click="backupModalVisible = true"
@@ -60,8 +67,8 @@
 
           <!-- Language Selector -->
           <el-dropdown @command="switchLocale">
-            <button class="nav-btn-text">
-              {{ locale.toUpperCase() }}
+            <button class="nav-btn-lang">
+              <span class="lang-text">{{ locale.toUpperCase() }}</span>
               <el-icon class="icon-right"><ArrowDown /></el-icon>
             </button>
             <template #dropdown>
@@ -92,7 +99,9 @@
         <div class="summary-metrics-row">
           <div class="metric-item">
             <span class="metric-label">{{ $t("totalProblems") }}</span>
-            <span class="metric-number">{{ totalProblemsCount }}</span>
+            <span class="metric-number">{{
+              totalProblemsCount.toLocaleString()
+            }}</span>
           </div>
 
           <div class="metric-divider"></div>
@@ -100,7 +109,7 @@
           <div class="metric-item">
             <span class="metric-label">{{ $t("solvedCount") }}</span>
             <span class="metric-number text-success">{{
-              totalSolvedCount
+              totalSolvedCount.toLocaleString()
             }}</span>
           </div>
 
@@ -109,16 +118,18 @@
           <div class="metric-item">
             <span class="metric-label">{{ $t("unsolvedCount") }}</span>
             <span class="metric-number text-muted">{{
-              totalUnsolvedCount
+              totalUnsolvedCount.toLocaleString()
             }}</span>
           </div>
 
           <div class="metric-divider"></div>
 
-          <div class="metric-item">
+          <div class="metric-item rate-metric-item">
             <span class="metric-label">{{ $t("completionRate") }}</span>
             <div class="rate-group">
-              <span class="metric-number">{{ completionPercentage }}%</span>
+              <span class="metric-number text-primary"
+                >{{ completionPercentage }}%</span
+              >
               <div class="mini-progress-track">
                 <div
                   class="mini-progress-fill"
@@ -158,6 +169,7 @@
               v-model="statusFilter"
               @change="query"
               size="default"
+              class="status-radio-group"
             >
               <el-radio-button label="all">{{ $t("all") }}</el-radio-button>
               <el-radio-button label="solved">{{
@@ -177,7 +189,7 @@
                 :max="9999"
                 :controls="false"
                 size="default"
-                style="width: 70px"
+                style="width: 74px"
                 @keyup.enter="query"
               />
             </div>
@@ -192,7 +204,7 @@
                 :controls="false"
                 placeholder="Min"
                 size="default"
-                style="width: 65px"
+                style="width: 68px"
                 @keyup.enter="query"
               />
               <span class="dash">—</span>
@@ -203,17 +215,22 @@
                 :controls="false"
                 placeholder="Max"
                 size="default"
-                style="width: 65px"
+                style="width: 68px"
                 @keyup.enter="query"
               />
             </div>
 
             <!-- Query & Reset -->
             <div class="btn-group">
-              <el-button type="primary" size="default" @click="query">
+              <el-button
+                type="primary"
+                size="default"
+                :icon="Search"
+                @click="query"
+              >
                 {{ $t("query") }}
               </el-button>
-              <el-button size="default" @click="reset">
+              <el-button size="default" :icon="RefreshRight" @click="reset">
                 {{ $t("reset") }}
               </el-button>
             </div>
@@ -222,7 +239,8 @@
           <!-- Unobtrusive Export/Import Actions -->
           <div class="toolbar-tools">
             <span class="filter-count">
-              {{ filterProblemSet.length }} / {{ problemSetAll.length }}
+              {{ filterProblemSet.length.toLocaleString() }} /
+              {{ problemSetAll.length.toLocaleString() }}
             </span>
             <button
               class="tool-btn"
@@ -254,7 +272,7 @@
             v-loading="loadingData"
           >
             <!-- Checkbox -->
-            <el-table-column width="50" align="center">
+            <el-table-column width="48" align="center">
               <template #default="scope">
                 <el-checkbox
                   :model-value="isSolved(scope.row.ID)"
@@ -268,7 +286,7 @@
             <el-table-column
               prop="ID"
               label="ID"
-              width="90"
+              width="88"
               sortable="custom"
               align="center"
             >
@@ -311,7 +329,7 @@
             </el-table-column>
 
             <!-- Contest Name -->
-            <el-table-column :label="$t('contestName')" min-width="200">
+            <el-table-column :label="$t('contestName')" min-width="190">
               <template #default="scope">
                 <el-link
                   :href="scope.row.ContestHrefZH"
@@ -402,6 +420,7 @@
 import { reactive, onMounted, ref, computed } from "vue";
 import axios, { AxiosResponse } from "axios";
 import { ElMessage } from "element-plus";
+import { Search, RefreshRight } from "@element-plus/icons-vue";
 import { useI18n } from "vue-i18n";
 import { storageService } from "@/services/storageService";
 import RatingDistribution from "@/components/RatingDistribution.vue";
@@ -484,7 +503,7 @@ const completionPercentage = computed(() => {
   );
 });
 
-// Muted rating color: only where communicating meaningful information
+// Meaningful, refined rating colors
 function getRatingTextStyle(rating: number) {
   const r = Math.round(rating);
   if (r >= 2200) {
@@ -717,18 +736,20 @@ function reset() {
 
 /* NAVBAR */
 .app-nav {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
   border-bottom: 1px solid #e2e8f0;
   position: sticky;
   top: 0;
   z-index: 100;
+  transition: all 0.15s ease;
 }
 
 .nav-container {
   max-width: 1320px;
   margin: 0 auto;
-  padding: 0 16px;
-  height: 52px;
+  padding: 0 20px;
+  height: 54px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -737,20 +758,39 @@ function reset() {
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   cursor: pointer;
+  user-select: none;
+}
+
+.brand-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  transition: all 0.15s ease;
+}
+
+.brand:hover .brand-icon-wrap {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
 }
 
 .brand-logo {
-  width: 20px;
-  height: 20px;
-  color: #2563eb;
+  width: 16px;
+  height: 16px;
 }
 
 .brand-title {
-  font-size: 16px;
+  font-size: 15.5px;
   font-weight: 700;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.02em;
   color: #0f172a;
 }
 
@@ -758,7 +798,7 @@ function reset() {
 .nav-tabs {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .nav-tab {
@@ -767,14 +807,22 @@ function reset() {
   font-size: 13px;
   font-weight: 500;
   color: #64748b;
-  padding: 6px 12px;
-  border-radius: 4px;
+  padding: 6px 13px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-tab .tab-icon {
+  font-size: 14px;
 }
 
 .nav-tab:hover {
   color: #0f172a;
+  background-color: #f1f5f9;
 }
 
 .nav-tab.active {
@@ -793,20 +841,20 @@ function reset() {
 .storage-indicator {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
   font-weight: 500;
-  background: #f1f5f9;
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
-  color: #16a34a;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .storage-indicator:hover {
-  background: #e2e8f0;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 .storage-indicator .dot {
@@ -814,6 +862,7 @@ function reset() {
   height: 6px;
   border-radius: 50%;
   background-color: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15);
 }
 
 .storage-text {
@@ -824,40 +873,49 @@ function reset() {
 .nav-btn-action {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 12px;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  font-size: 12.5px;
   font-weight: 500;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   color: #334155;
   cursor: pointer;
   transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
 .nav-btn-action:hover {
   color: #2563eb;
-  border-color: #bfdbfe;
-  background: #eff6ff;
+  border-color: #cbd5e1;
+  background: #f8fafc;
 }
 
-.nav-btn-text {
-  background: transparent;
-  border: none;
-  font-size: 13px;
+.nav-btn-lang {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 600;
   color: #475569;
   cursor: pointer;
-  padding: 5px 8px;
-  border-radius: 4px;
+  padding: 5px 9px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
-.nav-btn-text:hover {
+.nav-btn-lang:hover {
   color: #0f172a;
-  background: #f1f5f9;
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.lang-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .icon-right {
@@ -869,7 +927,7 @@ function reset() {
   max-width: 1320px;
   width: 100%;
   margin: 0 auto;
-  padding: 16px 16px 40px 16px;
+  padding: 16px 20px 48px 20px;
   box-sizing: border-box;
 }
 
@@ -879,29 +937,33 @@ function reset() {
   align-items: center;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 14px 20px;
+  border-radius: 8px;
+  padding: 14px 24px;
   margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
 }
 
 .metric-item {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .metric-label {
-  font-size: 12px;
+  font-size: 11.5px;
   color: #64748b;
-  font-weight: 500;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .metric-number {
-  font-size: 20px;
+  font-size: 23px;
   font-weight: 700;
   color: #0f172a;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .metric-number.text-success {
@@ -912,32 +974,40 @@ function reset() {
   color: #64748b;
 }
 
+.metric-number.text-primary {
+  color: #2563eb;
+}
+
 .metric-divider {
   width: 1px;
-  height: 28px;
+  height: 32px;
   background-color: #f1f5f9;
-  margin: 0 16px;
+  margin: 0 20px;
+}
+
+.rate-metric-item {
+  flex: 1.2;
 }
 
 .rate-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .mini-progress-track {
   flex: 1;
-  max-width: 90px;
-  height: 6px;
-  background-color: #f1f5f9;
-  border-radius: 3px;
+  max-width: 120px;
+  height: 7px;
+  background-color: #e2e8f0;
+  border-radius: 4px;
   overflow: hidden;
 }
 
 .mini-progress-fill {
   height: 100%;
   background-color: #2563eb;
-  border-radius: 3px;
+  border-radius: 4px;
   transition: width 0.3s ease;
 }
 
@@ -945,7 +1015,7 @@ function reset() {
 .explorer-block {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .toolbar {
@@ -956,8 +1026,9 @@ function reset() {
   flex-wrap: wrap;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 10px 14px;
+  border-radius: 8px;
+  padding: 11px 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
 }
 
 .toolbar-filters {
@@ -968,7 +1039,7 @@ function reset() {
 }
 
 .filter-search {
-  width: 190px;
+  width: 200px;
 }
 
 .inline-field {
@@ -1004,22 +1075,27 @@ function reset() {
   font-size: 12px;
   color: #64748b;
   font-weight: 500;
-  margin-right: 4px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .tool-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  padding: 5px 9px;
-  border-radius: 4px;
+  padding: 5px 10px;
+  border-radius: 5px;
   font-size: 12px;
   font-weight: 500;
   color: #475569;
   cursor: pointer;
   transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
 }
 
 .tool-btn:hover {
@@ -1031,8 +1107,9 @@ function reset() {
 /* TABLE STYLING */
 .table-wrap {
   background: #ffffff;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
   overflow: hidden;
 }
 
@@ -1046,13 +1123,14 @@ function reset() {
 
 :deep(.el-table th.el-table__cell) {
   font-weight: 600;
-  font-size: 12px;
-  padding: 8px 0;
-  text-transform: none;
+  font-size: 11.5px;
+  padding: 9px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 :deep(.el-table td.el-table__cell) {
-  padding: 6px 0;
+  padding: 7px 0;
 }
 
 :deep(.el-table--border .el-table__inner-wrapper::after),
@@ -1062,13 +1140,13 @@ function reset() {
 }
 
 :deep(.solved-row) {
-  background-color: #fcfdfc !important;
+  background-color: #fcfffd !important;
 }
 
 .title-cell {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
 }
 
 .solved-icon {
@@ -1077,7 +1155,7 @@ function reset() {
 }
 
 .col-id {
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   font-weight: 600;
   color: #64748b;
@@ -1085,7 +1163,7 @@ function reset() {
 
 .problem-link {
   font-weight: 500;
-  color: #1e293b !important;
+  color: #0f172a !important;
   font-size: 13px;
   text-decoration: none;
   transition: color 0.15s ease;
@@ -1113,40 +1191,57 @@ function reset() {
   font-size: 12px;
   font-weight: 600;
   color: #64748b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .rating-value {
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 13px;
 }
 
 .empty-box {
-  padding: 30px 0;
+  padding: 36px 0;
   text-align: center;
   color: #64748b;
 }
 
 .empty-box p {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   font-size: 13px;
 }
 
 .pagination-bar {
   display: flex;
   justify-content: flex-end;
-  padding: 12px 4px;
+  padding: 14px 4px;
 }
 
 @media (max-width: 900px) {
   .summary-metrics-row {
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 14px;
+    padding: 16px;
   }
   .metric-divider {
     display: none;
   }
   .metric-item {
     min-width: 45%;
+  }
+}
+
+@media (max-width: 600px) {
+  .nav-container {
+    padding: 0 12px;
+  }
+  .brand-title {
+    display: none;
+  }
+  .main-container {
+    padding: 12px 12px 36px 12px;
+  }
+  .filter-search {
+    width: 100%;
   }
 }
 </style>
